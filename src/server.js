@@ -38,7 +38,8 @@ initSocket(server)
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
-  process.env.CLIENT_URL,
+  'https://solveit-place.vercel.app', // production frontend (hardcoded fallback)
+  process.env.CLIENT_URL,             // also from env var
 ].filter(Boolean)
 
 // ── Middleware ────────────────────────────────────────────
