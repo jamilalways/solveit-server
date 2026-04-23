@@ -1,0 +1,29 @@
+node_modules/
+.env
+uploads/
+*.log
+# Dependencies
+node_modules/
+
+# Environment variables — NEVER commit
+.env
+
+# Uploaded files — stored on Cloudinary in production
+uploads/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Test files
+*.test.js
+coverage/
