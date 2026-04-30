@@ -44,6 +44,27 @@ exports.getContract = catchAsync(async (req, res) => {
   res.json({ contract })
 })
 
+// GET /api/contracts/problem/:problemId
+exports.getContractByProblem = catchAsync(async (req, res) => {
+  const { problemId } = req.params
+  const userId = req.user._id
+
+  const contract = await Contract.findOne({
+    problem: problemId,
+    $or: [
+      { client: userId },
+      { solver: userId }
+    ]
+  })
+    .populate('problem', 'title budget')
+    .populate('client',  'name avatar')
+    .populate('solver',  'name avatar')
+
+  if (!contract) return res.status(404).json({ message: 'Contract not found for this problem.' })
+
+  res.json({ contract })
+})
+
 // POST /api/contracts/:id/submit — solver submits solution
 exports.submitSolution = catchAsync(async (req, res) => {
   const contract = await Contract.findById(req.params.id)
@@ -77,6 +98,12 @@ exports.submitSolution = catchAsync(async (req, res) => {
 
 // PUT /api/contracts/:id/complete — client releases payment
 exports.completeContract = catchAsync(async (req, res) => {
+  const contractCheck = await Contract.findById(req.params.id)
+  if (!contractCheck) return res.status(404).json({ message: 'Contract not found.' })
+  if (contractCheck.status !== 'submitted') {
+    return res.status(400).json({ message: 'Solver must submit work before you can release payment.' })
+  }
+
   const contract = await releaseEscrow(req.params.id, req.user._id)
 
   // Update solver stats

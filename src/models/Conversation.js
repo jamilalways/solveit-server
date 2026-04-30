@@ -6,6 +6,10 @@ const conversationSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   }],
+  problem: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Problem',
+  },
   lastMessage: { type: String, default: '' },
   lastMessageAt: { type: Date, default: Date.now },
 }, { timestamps: true })

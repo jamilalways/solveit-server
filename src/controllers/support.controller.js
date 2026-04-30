@@ -59,3 +59,15 @@ exports.updateTicketStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get my support tickets
+// @route   GET /api/support/my-tickets
+// @access  Private
+exports.getMyTickets = async (req, res, next) => {
+  try {
+    const tickets = await SupportTicket.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, tickets });
+  } catch (error) {
+    next(error);
+  }
+};

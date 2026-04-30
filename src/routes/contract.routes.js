@@ -1,6 +1,6 @@
 const router = require('express').Router()
 const {
-  getContracts, getContract,
+  getContracts, getContract, getContractByProblem,
   submitSolution, completeContract,
 } = require('../controllers/contract.controller')
 const { protect, restrictTo } = require('../middleware/auth')
@@ -15,6 +15,7 @@ try {
 }
 
 router.get('/',    protect, getContracts)
+router.get('/problem/:problemId', protect, getContractByProblem)
 router.get('/:id', protect, getContract)
 
 router.post('/:id/submit',

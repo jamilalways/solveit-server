@@ -24,6 +24,8 @@ const reviewRoutes   = require('./routes/review.routes')
 const disputeRoutes  = require('./routes/dispute.routes')
 const notifRoutes    = require('./routes/notification.routes')
 const adminRoutes    = require('./routes/admin.routes')
+const dmRoutes       = require('./routes/dm.routes')
+const supportRoutes  = require('./routes/support.routes')
 
 const app    = express()
 const server = http.createServer(app)
@@ -84,6 +86,8 @@ app.use('/api/reviews',       reviewRoutes)
 app.use('/api/disputes',      disputeRoutes)
 app.use('/api/notifications', notifRoutes)
 app.use('/api/admin',         adminRoutes)
+app.use('/api/dm',            dmRoutes)
+app.use('/api/support',       supportRoutes)
 
 // Health check — Render pings this to keep server awake
 app.get('/api/health', (req, res) => {

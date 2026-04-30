@@ -2,6 +2,8 @@ const Conversation   = require('../models/Conversation')
 const DirectMessage  = require('../models/DirectMessage')
 const User           = require('../models/User')
 const { catchAsync } = require('../utils/response')
+const { getIO }      = require('../sockets/socket')
+const { createNotification } = require('../services/notification.service')
 
 // GET /api/dm — list my conversations
 exports.getConversations = catchAsync(async (req, res) => {
@@ -9,6 +11,7 @@ exports.getConversations = catchAsync(async (req, res) => {
     participants: req.user._id,
   })
     .populate('participants', 'name avatar role')
+    .populate('problem', 'title')
     .sort({ lastMessageAt: -1 })
 
   // Add unread count per conversation
@@ -29,6 +32,7 @@ exports.getConversations = catchAsync(async (req, res) => {
 // POST /api/dm/start/:userId — get or create conversation with a user
 exports.getOrCreateConversation = catchAsync(async (req, res) => {
   const otherUserId = req.params.userId
+  const { problemId } = req.body
 
   if (String(otherUserId) === String(req.user._id)) {
     return res.status(400).json({ message: 'Cannot start conversation with yourself.' })
@@ -37,16 +41,24 @@ exports.getOrCreateConversation = catchAsync(async (req, res) => {
   const otherUser = await User.findById(otherUserId)
   if (!otherUser) return res.status(404).json({ message: 'User not found.' })
 
-  // Check if conversation already exists
-  let conversation = await Conversation.findOne({
+  // Check if conversation already exists (specific to problem if provided)
+  const query = {
     participants: { $all: [req.user._id, otherUserId], $size: 2 },
-  }).populate('participants', 'name avatar role')
+  }
+  if (problemId) query.problem = problemId
+  else query.problem = { $exists: false }
+
+  let conversation = await Conversation.findOne(query)
+    .populate('participants', 'name avatar role')
+    .populate('problem', 'title')
 
   if (!conversation) {
     conversation = await Conversation.create({
       participants: [req.user._id, otherUserId],
+      problem: problemId || undefined,
     })
     conversation = await conversation.populate('participants', 'name avatar role')
+    if (problemId) conversation = await conversation.populate('problem', 'title')
   }
 
   res.json({ conversation })
@@ -98,5 +110,26 @@ exports.sendDirectMessage = catchAsync(async (req, res) => {
   await conversation.save()
 
   const populated = await message.populate('sender', 'name avatar')
+
+  // Real-time broadcast
+  try {
+    const io = getIO()
+    io.to(`dm_${req.params.conversationId}`).emit('receive_dm', populated)
+
+    // Notify the other participant
+    const otherParticipantId = conversation.participants.find(p => String(p) !== String(req.user._id))
+    if (otherParticipantId) {
+      await createNotification({
+        userId: otherParticipantId,
+        type: 'new_message',
+        title: 'New message',
+        message: `You have a new direct message.`,
+        link: `/messages/${req.params.conversationId}`,
+      }, io)
+    }
+  } catch (err) {
+    console.error('Socket/Notification error in DM controller:', err.message)
+  }
+
   res.status(201).json({ message: populated })
 })
